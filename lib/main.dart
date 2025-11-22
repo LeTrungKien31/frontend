@@ -10,7 +10,6 @@ import 'screens/meals_screen.dart';
 import 'screens/meal_detail_screen.dart';
 import 'screens/ingredients_screen.dart';
 import 'screens/reminders_screen.dart';
-import 'screens/dashboard_screen.dart';
 
 void main() => runApp(const ProviderScope(child: PHMApp()));
 

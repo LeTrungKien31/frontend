@@ -7,13 +7,16 @@ import '../provider.dart';
 class WaterTrackingScreen extends ConsumerStatefulWidget {
   const WaterTrackingScreen({super.key});
   @override
-  ConsumerState<WaterTrackingScreen> createState() => _WaterTrackingScreenState();
+  ConsumerState<WaterTrackingScreen> createState() =>
+      _WaterTrackingScreenState();
 }
 
 class _WaterTrackingScreenState extends ConsumerState<WaterTrackingScreen> {
   DateTime selectedDate = DateTime.now();
   final int dailyGoal = 2675;
-  final TextEditingController _customAmountController = TextEditingController(text: '1000');
+  final TextEditingController _customAmountController = TextEditingController(
+    text: '1000',
+  );
 
   @override
   void dispose() {
@@ -32,7 +35,10 @@ class _WaterTrackingScreenState extends ConsumerState<WaterTrackingScreen> {
     ref.invalidate(todayWaterProvider);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Đã thêm +$amount ml'), duration: const Duration(seconds: 1)),
+      SnackBar(
+        content: Text('Đã thêm +$amount ml'),
+        duration: const Duration(seconds: 1),
+      ),
     );
   }
 
@@ -59,7 +65,8 @@ class _WaterTrackingScreenState extends ConsumerState<WaterTrackingScreen> {
   }
 
   Widget _buildDateSelector() {
-    final dateStr = '${selectedDate.day.toString().padLeft(2, '0')}-'
+    final dateStr =
+        '${selectedDate.day.toString().padLeft(2, '0')}-'
         '${selectedDate.month.toString().padLeft(2, '0')}-'
         '${selectedDate.year}';
     return Padding(
@@ -71,7 +78,14 @@ class _WaterTrackingScreenState extends ConsumerState<WaterTrackingScreen> {
             icon: const Icon(Icons.chevron_left, color: AppColors.waterBlue),
             onPressed: () => _changeDate(-1),
           ),
-          Text(dateStr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: AppColors.waterBlue)),
+          Text(
+            dateStr,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: AppColors.waterBlue,
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.chevron_right, color: AppColors.waterBlue),
             onPressed: () => _changeDate(1),
@@ -104,24 +118,44 @@ class _WaterTrackingScreenState extends ConsumerState<WaterTrackingScreen> {
   }
 
   Widget _buildWaterGlass(double percentage, int current) {
-    return SizedBox(
-      width: 220,
-      height: 220,
-      child: CustomPaint(
-        painter: WaterGlassPainter(percentage / 100),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
+      children: [
+        SizedBox(
+          width: 240,
+          height: 240,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              Text('${percentage.toStringAsFixed(1)}%',
-                  style: const TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: AppColors.waterBlueDark)),
-              const SizedBox(height: 4),
-              Text('$current/$dailyGoal ml',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+              CustomPaint(
+                size: const Size(240, 240),
+                painter: CircularProgressPainter(percentage / 100),
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${percentage.toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                      fontSize: 56,
+                      fontWeight: FontWeight.w300,
+                      color: AppColors.waterBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$current / $dailyGoal ml',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -137,7 +171,9 @@ class _WaterTrackingScreenState extends ConsumerState<WaterTrackingScreen> {
             backgroundColor: isFirst ? AppColors.error : AppColors.waterBlue,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           child: Text(isFirst ? '-$amt' : '+$amt'),
         );
@@ -196,7 +232,10 @@ class _WaterTrackingScreenState extends ConsumerState<WaterTrackingScreen> {
       ),
       child: Row(
         children: [
-          Text('Thêm số Calories', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+          Text(
+            'Thêm số Calories',
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
         ],
       ),
     );
@@ -214,11 +253,18 @@ class _WaterTrackingScreenState extends ConsumerState<WaterTrackingScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/icons/alarm.png', width: 24, height: 24,
-                errorBuilder: (_, __, ___) => const Icon(Icons.alarm, color: AppColors.warning)),
+            Image.asset(
+              'assets/icons/alarm.png',
+              width: 24,
+              height: 24,
+              errorBuilder: (_, __, ___) =>
+                  const Icon(Icons.alarm, color: AppColors.warning),
+            ),
             const SizedBox(width: 8),
-            const Text('Bật nhắc nhở uống nước',
-                style: TextStyle(fontSize: 16, color: AppColors.warning)),
+            const Text(
+              'Bật nhắc nhở uống nước',
+              style: TextStyle(fontSize: 16, color: AppColors.warning),
+            ),
           ],
         ),
       ),
@@ -226,59 +272,40 @@ class _WaterTrackingScreenState extends ConsumerState<WaterTrackingScreen> {
   }
 }
 
-class WaterGlassPainter extends CustomPainter {
+class CircularProgressPainter extends CustomPainter {
   final double fillPercent;
-  WaterGlassPainter(this.fillPercent);
+  CircularProgressPainter(this.fillPercent);
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 8;
+    final radius = size.width / 2 - 16;
 
-    // Background circle
+    // Background circle (light gray)
     final bgPaint = Paint()
-      ..color = Colors.grey[200]!
+      ..color = Colors.grey[300]!
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 12;
+      ..strokeWidth = 20;
     canvas.drawCircle(center, radius, bgPaint);
 
-    // Water fill arc
-    final fillPaint = Paint()
+    // Progress arc (blue)
+    final progressPaint = Paint()
       ..color = AppColors.waterBlue
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 12
+      ..strokeWidth = 20
       ..strokeCap = StrokeCap.round;
+
     final sweepAngle = 2 * math.pi * fillPercent;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -math.pi / 2,
       sweepAngle,
       false,
-      fillPaint,
+      progressPaint,
     );
-
-    // Inner water wave effect
-    if (fillPercent > 0) {
-      final innerRadius = radius - 20;
-      final waterHeight = innerRadius * 2 * fillPercent;
-      final waterTop = center.dy + innerRadius - waterHeight;
-      
-      final wavePaint = Paint()
-        ..color = AppColors.waterBlue.withOpacity(0.3)
-        ..style = PaintingStyle.fill;
-      
-      final path = Path();
-      path.addOval(Rect.fromCircle(center: center, radius: innerRadius));
-      canvas.save();
-      canvas.clipPath(path);
-      canvas.drawRect(
-        Rect.fromLTRB(0, waterTop, size.width, size.height),
-        wavePaint,
-      );
-      canvas.restore();
-    }
   }
 
   @override
-  bool shouldRepaint(covariant WaterGlassPainter old) => old.fillPercent != fillPercent;
+  bool shouldRepaint(covariant CircularProgressPainter old) =>
+      old.fillPercent != fillPercent;
 }

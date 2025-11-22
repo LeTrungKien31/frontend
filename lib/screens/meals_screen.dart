@@ -6,7 +6,7 @@ import '../provider.dart';
 class MealModel {
   final int id;
   final String name;
-  final String imageUrl;
+  final String? imageUrl;
   final double kcal;
   final double carbs;
   final double protein;
@@ -16,29 +16,27 @@ class MealModel {
   const MealModel({
     required this.id,
     required this.name,
-    required this.imageUrl,
+    this.imageUrl,
     required this.kcal,
     required this.carbs,
     required this.protein,
     required this.fat,
     this.isFavorite = false,
   });
-}
 
-final sampleMeals = [
-  MealModel(id: 1, name: 'Hamburger thịt bò', imageUrl: 'hamburger', 
-      kcal: 250, carbs: 30, protein: 13, fat: 9, isFavorite: true),
-  MealModel(id: 2, name: 'Canh hải sản', imageUrl: 'seafood_soup',
-      kcal: 920, carbs: 109, protein: 55, fat: 32, isFavorite: true),
-  MealModel(id: 3, name: 'Canh cá nấu chua ngọt', imageUrl: 'fish_soup',
-      kcal: 280, carbs: 18, protein: 20, fat: 12, isFavorite: true),
-  MealModel(id: 4, name: 'Spaghetti sốt cà chua thịt bò', imageUrl: 'spaghetti',
-      kcal: 450, carbs: 55, protein: 22, fat: 15, isFavorite: true),
-  MealModel(id: 5, name: 'Cơm gà xối mỡ', imageUrl: 'chicken_rice',
-      kcal: 650, carbs: 70, protein: 35, fat: 25),
-  MealModel(id: 6, name: 'Phở bò', imageUrl: 'pho',
-      kcal: 380, carbs: 45, protein: 25, fat: 12),
-];
+  factory MealModel.fromJson(Map<String, dynamic> json) {
+    return MealModel(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      imageUrl: json['imageUrl'] as String?,
+      kcal: (json['kcalPerServing'] as num).toDouble(),
+      carbs: (json['carbs'] as num?)?.toDouble() ?? 0,
+      protein: (json['protein'] as num?)?.toDouble() ?? 0,
+      fat: (json['fat'] as num?)?.toDouble() ?? 0,
+      isFavorite: false,
+    );
+  }
+}
 
 class MealsScreen extends ConsumerStatefulWidget {
   const MealsScreen({super.key});
@@ -48,6 +46,47 @@ class MealsScreen extends ConsumerStatefulWidget {
 
 class _MealsScreenState extends ConsumerState<MealsScreen> {
   final _searchController = TextEditingController();
+  List<MealModel> _allMeals = [];
+  List<MealModel> _filteredMeals = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMeals();
+  }
+
+  Future<void> _loadMeals() async {
+    try {
+      setState(() => _isLoading = true);
+      final foods = await ref.read(mealServiceProvider).listFoods();
+      setState(() {
+        _allMeals = foods.map((f) => MealModel.fromJson(f)).toList();
+        _filteredMeals = _allMeals;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi tải dữ liệu: $e')),
+        );
+      }
+    }
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredMeals = _allMeals;
+      } else {
+        _filteredMeals = _allMeals
+            .where((m) => m.name.toLowerCase().contains(query))
+            .toList();
+      }
+    });
+  }
   
   @override
   void dispose() {
@@ -67,8 +106,14 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final favorites = sampleMeals.where((m) => m.isFavorite).toList();
-    final others = sampleMeals.where((m) => !m.isFavorite).toList();
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final favorites = _filteredMeals.where((m) => m.isFavorite).toList();
+    final others = _filteredMeals.where((m) => !m.isFavorite).toList();
     
     return Scaffold(
       appBar: AppBar(
@@ -78,45 +123,53 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
         ),
         title: const Text('MÓN ĂN'),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Tìm kiếm món ăn...',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+      body: RefreshIndicator(
+        onRefresh: _loadMeals,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (_) => _onSearchChanged(),
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm món ăn...',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
-            ),
-            if (favorites.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Yêu thích',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-              ),
-              const SizedBox(height: 12),
-              _buildMealsGrid(favorites),
+              if (favorites.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('Yêu thích',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+                ),
+                const SizedBox(height: 12),
+                _buildMealsGrid(favorites),
+              ],
+              if (others.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                  child: Text('Tất cả',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+                ),
+                _buildMealsGrid(others),
+              ],
+              if (_filteredMeals.isEmpty) ...[
+                const SizedBox(height: 100),
+                const Center(child: Text('Không tìm thấy món ăn nào')),
+              ],
+              const SizedBox(height: 20),
             ],
-            if (others.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                child: Text('Tất cả',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-              ),
-              _buildMealsGrid(others),
-            ],
-            const SizedBox(height: 20),
-          ],
+          ),
         ),
       ),
     );
@@ -160,24 +213,48 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: Container(
-                    height: 100,
-                    width: double.infinity,
-                    color: Colors.grey[200],
-                    child: Center(
-                      child: _buildMealImage(meal),
-                    ),
-                  ),
+                  child: meal.imageUrl != null && meal.imageUrl!.isNotEmpty
+                      ? Image.network(
+                          meal.imageUrl!,
+                          height: 100,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            height: 100,
+                            width: double.infinity,
+                            color: Colors.grey[200],
+                            child: Center(child: _buildMealEmoji(meal)),
+                          ),
+                        )
+                      : Container(
+                          height: 100,
+                          width: double.infinity,
+                          color: Colors.grey[200],
+                          child: Center(child: _buildMealEmoji(meal)),
+                        ),
                 ),
                 Positioned(
                   top: 8,
                   right: 8,
                   child: InkWell(
                     onTap: () {},
-                    child: Icon(
-                      meal.isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: meal.isFavorite ? Colors.red : Colors.grey,
-                      size: 24,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        meal.isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: meal.isFavorite ? Colors.red : Colors.grey,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -228,15 +305,22 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
     );
   }
 
-  Widget _buildMealImage(MealModel meal) {
+  Widget _buildMealEmoji(MealModel meal) {
+    return Text(_getMealEmoji(meal.imageUrl ?? meal.name), 
+        style: const TextStyle(fontSize: 48));
+  }
+
+  String _getMealEmoji(String key) {
     final emojis = {
-      'hamburger': '🍔',
-      'seafood_soup': '🍲',
-      'fish_soup': '🐟',
-      'spaghetti': '🍝',
-      'chicken_rice': '🍗',
-      'pho': '🍜',
+      'hamburger': '🍔', 'seafood_soup': '🍲', 'fish_soup': '🐟',
+      'spaghetti': '🍝', 'chicken_rice': '🍗', 'pho': '🍜',
+      'burger': '🍔', 'soup': '🍲', 'fish': '🐟', 'pasta': '🍝',
+      'chicken': '🍗', 'noodle': '🍜', 'rice': '🍚', 'sandwich': '🥪',
     };
-    return Text(emojis[meal.imageUrl] ?? '🍽️', style: const TextStyle(fontSize: 48));
+    final lowerKey = key.toLowerCase();
+    for (var entry in emojis.entries) {
+      if (lowerKey.contains(entry.key)) return entry.value;
+    }
+    return '🍽️';
   }
 }
