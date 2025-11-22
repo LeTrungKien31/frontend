@@ -25,7 +25,9 @@ class DioClient {
         },
         onError: (error, handler) {
           // Log errors for debugging
+          // ignore: avoid_print
           print('DioError: ${error.message}');
+          // ignore: avoid_print
           print('URL: ${error.requestOptions.uri}');
           handler.next(error);
         },

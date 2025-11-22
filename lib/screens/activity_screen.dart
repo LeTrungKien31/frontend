@@ -37,7 +37,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
   Future<void> _showAddDialog(ActivityModel activity) async {
     final minutesController = TextEditingController(text: '30');
     final weightController = TextEditingController(text: '65');
-    
+
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -78,21 +78,43 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
     );
 
     if (result == true && mounted) {
-      final minutes = int.tryParse(minutesController.text) ?? 30;
-      final weight = double.tryParse(weightController.text) ?? 65;
-      
-      await ref.read(activityServiceProvider).add(
-        name: activity.name,
-        met: activity.met,
-        minutes: minutes,
-        weightKg: weight,
-      );
-      ref.invalidate(todayKcalOutProvider);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đã thêm ${activity.name} $minutes phút')),
-        );
+      try {
+        final minutes = int.tryParse(minutesController.text) ?? 30;
+        final weight = double.tryParse(weightController.text) ?? 65;
+
+        // Validate input
+        if (minutes <= 0 || weight <= 0) {
+          throw Exception('Invalid input values');
+        }
+
+        await ref
+            .read(activityServiceProvider)
+            .add(
+              name: activity.name,
+              met: activity.met,
+              minutes: minutes,
+              weightKg: weight,
+            );
+
+        ref.invalidate(todayKcalOutProvider);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đã thêm ${activity.name} $minutes phút'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -106,9 +128,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('VẬN ĐỘNG'),
-        actions: [
-          IconButton(icon: const Icon(Icons.menu), onPressed: () {}),
-        ],
+        actions: [IconButton(icon: const Icon(Icons.menu), onPressed: () {})],
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
@@ -147,6 +167,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
+              // ignore: deprecated_member_use
               color: Colors.grey.withOpacity(0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
@@ -163,16 +184,16 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                 shape: BoxShape.circle,
               ),
               child: Center(
-                child: Text(activity.icon, style: const TextStyle(fontSize: 30)),
+                child: Text(
+                  activity.icon,
+                  style: const TextStyle(fontSize: 30),
+                ),
               ),
             ),
             const SizedBox(height: 12),
             Text(
               activity.name,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
             Text(

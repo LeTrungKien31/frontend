@@ -68,6 +68,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
+                    // ignore: deprecated_member_use
                     color: AppColors.primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),

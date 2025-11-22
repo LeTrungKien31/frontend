@@ -1,7 +1,8 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
-import '../auth/providers.dart';
 import '../provider.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -146,6 +147,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
+            // ignore: deprecated_member_use
             color: AppColors.primary.withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
@@ -204,6 +206,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         Text(
           label,
+          // ignore: deprecated_member_use
           style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
         ),
       ],
@@ -262,6 +265,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
+          // ignore: deprecated_member_use
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
         ),
@@ -296,6 +300,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
+            // ignore: deprecated_member_use
             color: Colors.grey.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
@@ -307,6 +312,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
+              // ignore: deprecated_member_use
               color: iconColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),

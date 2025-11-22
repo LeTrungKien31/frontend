@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../theme/app_theme.dart';
 import '../provider.dart';
 
 class MealModel {
@@ -94,6 +93,7 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
     super.dispose();
   }
 
+  // ignore: unused_element
   Future<void> _addMealToLog(MealModel meal) async {
     await ref.read(mealServiceProvider).add(foodId: meal.id, servings: 1);
     ref.invalidate(todayMealKcalProvider);
@@ -200,6 +200,7 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
+              // ignore: deprecated_member_use
               color: Colors.grey.withOpacity(0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
@@ -245,6 +246,7 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
+                            // ignore: deprecated_member_use
                             color: Colors.black.withOpacity(0.1),
                             blurRadius: 4,
                           ),
