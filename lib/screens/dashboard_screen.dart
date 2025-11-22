@@ -1,63 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-// Đã có sẵn trong dự án của bạn:
-import '../auth/providers.dart'; // meProvider, dioClientProvider
-import '../provider.dart'; // todayWaterProvider, todayMealKcalProvider, todayKcalOutProvider
+import '../theme/app_theme.dart';
+import '../auth/providers.dart';
+import '../provider.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
   @override
-  ConsumerState<DashboardScreen> createState() => _St();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _St extends ConsumerState<DashboardScreen> {
-  Future<void> _pingOpen() async {
-    try {
-      final r = await ref.read(dioClientProvider).dio.get('/api/v1/ping');
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ping: ${r.data}')));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ping lỗi: $e')));
-    }
-  }
-
-  Future<void> _pingMe() async {
-    try {
-      final r = await ref.read(dioClientProvider).dio.get('/api/v1/ping/me');
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ping/me: ${r.data}')));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ping/me lỗi: $e')));
-    }
-  }
-
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Future<void> _refresh() async {
-    // làm mới 3 chỉ số
     ref.invalidate(todayWaterProvider);
     ref.invalidate(todayMealKcalProvider);
     ref.invalidate(todayKcalOutProvider);
   }
 
   @override
-  Widget build(BuildContext ctx) {
-    final me = ref.watch(meProvider); // chào tên user
-    final water = ref.watch(todayWaterProvider); // ml
-    final inKcal = ref.watch(todayMealKcalProvider); // kcal nạp
-    final outKcal = ref.watch(todayKcalOutProvider); // kcal tiêu
+  Widget build(BuildContext context) {
+    final me = ref.watch(meProvider);
+    final water = ref.watch(todayWaterProvider);
+    final inKcal = ref.watch(todayMealKcalProvider);
+    final outKcal = ref.watch(todayKcalOutProvider);
 
-    // ignore: no_leading_underscores_for_local_identifiers
-    int? _net() {
+    int? netKcal() {
       final i = inKcal.asData?.value;
       final o = outKcal.asData?.value;
       if (i == null || o == null) return null;
@@ -67,18 +34,19 @@ class _St extends ConsumerState<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: me.when(
-          data: (u) => Text('Chào, ${u['fullname'] ?? ''}'),
-          loading: () => const Text('Dashboard'),
-          error: (_, __) => const Text('Dashboard'),
+          data: (u) => Text('Chào, ${u['fullname'] ?? 'bạn'}'),
+          loading: () => const Text('Tổng quan'),
+          error: (_, __) => const Text('Tổng quan'),
         ),
         actions: [
-          TextButton(
-            onPressed: _pingOpen,
-            child: const Text('Ping', style: TextStyle(color: Colors.white)),
-          ),
-          TextButton(
-            onPressed: _pingMe,
-            child: const Text('Ping/me', style: TextStyle(color: Colors.white)),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await ref.read(authServiceProvider).logout();
+              if (mounted) {
+                Navigator.of(context).pushReplacementNamed('/login');
+              }
+            },
           ),
         ],
       ),
@@ -87,72 +55,70 @@ class _St extends ConsumerState<DashboardScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Ô chỉ số nước
-            _metricCard(
-              title: 'Nước hôm nay',
-              value: water.when(
-                data: (v) => '$v ml',
-                loading: () => '...',
-                error: (e, _) => 'lỗi',
-              ),
-            ),
+            // Today summary card
+            _buildSummaryCard(water, inKcal, outKcal, netKcal()),
+            const SizedBox(height: 20),
+            
+            // Quick actions
+            Text('Ghi nhanh', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
-
-            // Hai ô Kcal
+            _buildQuickActions(context),
+            const SizedBox(height: 24),
+            
+            // Stats cards
+            Text('Hôm nay', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
-                  child: _metricCard(
-                    title: 'Kcal nạp',
-                    value: inKcal.when(
-                      data: (v) => '$v',
+                  child: _buildStatCard(
+                    icon: Icons.water_drop,
+                    iconColor: AppColors.waterBlue,
+                    label: 'Nước',
+                    value: water.when(
+                      data: (v) => '$v ml',
                       loading: () => '...',
-                      error: (e, _) => 'lỗi',
+                      error: (_, __) => 'Lỗi',
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _metricCard(
-                    title: 'Kcal tiêu',
-                    value: outKcal.when(
+                  child: _buildStatCard(
+                    icon: Icons.restaurant,
+                    iconColor: Colors.orange,
+                    label: 'Kcal nạp',
+                    value: inKcal.when(
                       data: (v) => '$v',
                       loading: () => '...',
-                      error: (e, _) => 'lỗi',
+                      error: (_, __) => 'Lỗi',
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-
-            _metricCard(title: 'Kcal net', value: _net()?.toString() ?? '...'),
-            const SizedBox(height: 16),
-
-            Text('Ghi nhanh', style: Theme.of(ctx).textTheme.titleMedium),
-            const SizedBox(height: 8),
-
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(ctx).pushNamed('/log/water'),
-                    child: const Text('Ghi nước'),
+                  child: _buildStatCard(
+                    icon: Icons.fitness_center,
+                    iconColor: AppColors.primary,
+                    label: 'Kcal tiêu',
+                    value: outKcal.when(
+                      data: (v) => '$v',
+                      loading: () => '...',
+                      error: (_, __) => 'Lỗi',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(ctx).pushNamed('/log/meal'),
-                    child: const Text('Ghi bữa ăn'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () =>
-                        Navigator.of(ctx).pushNamed('/log/activity'),
-                    child: const Text('Ghi vận động'),
+                  child: _buildStatCard(
+                    icon: Icons.balance,
+                    iconColor: Colors.purple,
+                    label: 'Kcal net',
+                    value: netKcal()?.toString() ?? '...',
                   ),
                 ),
               ],
@@ -163,20 +129,209 @@ class _St extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _metricCard({required String title, required String value}) {
-    return Card(
-      elevation: 0.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+  Widget _buildSummaryCard(
+    AsyncValue<int> water,
+    AsyncValue<int> inKcal,
+    AsyncValue<int> outKcal,
+    int? net,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.primary, AppColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Tổng quan hôm nay',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildSummaryItem(
+                '💧',
+                water.asData?.value.toString() ?? '...',
+                'ml nước',
+              ),
+              _buildSummaryItem(
+                '🔥',
+                net?.toString() ?? '...',
+                'Kcal net',
+              ),
+              _buildSummaryItem(
+                '🏃',
+                outKcal.asData?.value.toString() ?? '...',
+                'Kcal tiêu',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(String emoji, String value, String label) {
+    return Column(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 28)),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickActions(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildActionButton(
+            icon: Icons.water_drop,
+            color: AppColors.waterBlue,
+            label: 'Uống nước',
+            onTap: () async {
+              await ref.read(waterServiceProvider).add(250);
+              ref.invalidate(todayWaterProvider);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Đã ghi +250ml nước')),
+                );
+              }
+            },
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildActionButton(
+            icon: Icons.restaurant,
+            color: Colors.orange,
+            label: 'Ghi bữa ăn',
+            onTap: () => Navigator.pushNamed(context, '/meals'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildActionButton(
+            icon: Icons.fitness_center,
+            color: AppColors.primary,
+            label: 'Vận động',
+            onTap: () => Navigator.pushNamed(context, '/activity'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            Text(value, style: const TextStyle(fontSize: 22)),
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: iconColor, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

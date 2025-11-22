@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/main_navigation_screen.dart';
+import 'screens/water_tracking_screen.dart';
+import 'screens/activity_screen.dart';
+import 'screens/meals_screen.dart';
+import 'screens/meal_detail_screen.dart';
+import 'screens/ingredients_screen.dart';
+import 'screens/reminders_screen.dart';
 import 'screens/dashboard_screen.dart';
-import 'screens/water_log_screen.dart';
-import 'screens/meal_log_screen.dart';
-import 'screens/activity_log_screen.dart';
 
 void main() => runApp(const ProviderScope(child: PHMApp()));
 
@@ -15,16 +20,42 @@ class PHMApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PHM',
-      theme: ThemeData(useMaterial3: true),
+      title: 'Health Tracker',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
       initialRoute: '/login',
-      routes: {
-        '/login': (_) => const LoginScreen(),
-        '/register': (_) => const RegisterScreen(),
-        '/dashboard': (_) => const DashboardScreen(),
-        '/log/water': (_) => const WaterLogScreen(),
-        '/log/meal': (_) => const MealLogScreen(),
-        '/log/activity': (_) => const ActivityLogScreen(),
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/login':
+            return MaterialPageRoute(builder: (_) => const LoginScreen());
+          case '/register':
+            return MaterialPageRoute(builder: (_) => const RegisterScreen());
+          case '/dashboard':
+            return MaterialPageRoute(builder: (_) => const MainNavigationScreen());
+          case '/home':
+            return MaterialPageRoute(builder: (_) => const MainNavigationScreen());
+          case '/water':
+            return MaterialPageRoute(builder: (_) => const WaterTrackingScreen());
+          case '/activity':
+          case '/log/activity':
+            return MaterialPageRoute(builder: (_) => const ActivityScreen());
+          case '/meals':
+          case '/log/meal':
+            return MaterialPageRoute(builder: (_) => const MealsScreen());
+          case '/meal/detail':
+            final meal = settings.arguments as MealModel?;
+            return MaterialPageRoute(
+              builder: (_) => MealDetailScreen(meal: meal),
+            );
+          case '/ingredients':
+            return MaterialPageRoute(builder: (_) => const IngredientsScreen());
+          case '/reminders':
+            return MaterialPageRoute(builder: (_) => const RemindersScreen());
+          case '/log/water':
+            return MaterialPageRoute(builder: (_) => const WaterTrackingScreen());
+          default:
+            return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
       },
     );
   }
